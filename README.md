@@ -9,4 +9,16 @@
 ToDoList:
   - pgd attack
   - captum 사용
-  - 
+  -
+
+### Prerequisites
+Run the following:
+```
+$ pip3 install -r requirements.txt
+```
+
+### Training models
+Run the following:
+```
+$ python3 train.py --params params.yaml
+```

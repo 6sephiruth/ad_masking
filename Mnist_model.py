@@ -11,7 +11,8 @@ def mnist_train(args, model, device, train_loader, optimizer, epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if batch_idx % 10 == 0:
+        #if batch_idx % 10 == 0:
+        if batch_idx % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
@@ -36,7 +37,7 @@ def mnist_test(model, device, test_loader):
 
 class MnistBaseNet(nn.Module):
     def __init__(self):
-        super(MnistBaseNet, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout(0.25)

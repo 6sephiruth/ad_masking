@@ -1,8 +1,6 @@
 import torch
 import torch.nn.functional as F
-import sys
-import time
-import os
+import os, time, sys
 
 TOTAL_BAR_LENGTH = 65.
 last_time = time.time()
@@ -14,10 +12,9 @@ term_width = int(term_width)
 def exists(pathname):
     return os.path.exists(pathname)
 
-def mkdir(dir_names):
+def makedirs(dir_names):
     for d in dir_names:
-        if not os.path.exists(d):
-            os.mkdir(d)
+        os.makedirs(d, exist_ok=True)
 
 
 def mnist_train(model, device, train_loader, optimizer, epoch):

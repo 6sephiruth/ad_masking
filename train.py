@@ -1,23 +1,21 @@
-from __future__ import print_function
 import argparse
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+#import torch
+#import torch.nn as nn
+#import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import torch.backends.cudnn as cudnn
-from utils import progress_bar
 
 import numpy as np
-import os
 import yaml
-import time
 
+# custom packages
 from utils import *
+from load_dataset import *
 from Mnist_model import *
 from resnet import *
 
+# parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--params', dest='params')
 args = parser.parse_args()
@@ -28,87 +26,60 @@ with open(f'./{args.params}', 'r') as f:
 # designate gpu
 os.environ['CUDA_VISIBLE_DEVICES'] = params_loaded['gpu_num']
 
+# set seed
 seed = 0
 np.random.seed(seed)
 torch.manual_seed(seed)
 
-datadir = ['dataset', 'model', 'model/' + str(params_loaded['dataset'])]
-mkdir(datadir)
+# set dataset dir
+if 'data_dir' not in params_loaded.keys():
+    DATA_DIR = './dataset'
+else:
+    DATA_DIR = params_loaded['data_dir']
 
+# set model dir
+MODEL_DIR = "model/{}/{}_{}.pt".format(params_loaded['dataset'],
+                                       params_loaded['dataset'],
+                                       params_loaded['model_name'])
 
+# directories for experiments
+datadir = [DATA_DIR, './model/' + str(params_loaded['dataset'])]
+makedirs(datadir)
+
+# set cuda settings
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-train_kwargs = {'batch_size': params_loaded['batch_size']}
-test_kwargs = {'batch_size': params_loaded['batch_size']}
-
+# set train/test keyword arguments
+kwargs = {'batch_size': params_loaded['batch_size']}
 if use_cuda:
-    cuda_kwargs = {'num_workers': 1,
-                    'pin_memory': True,
-                    'shuffle': True}
-    train_kwargs.update(cuda_kwargs)
-    test_kwargs.update(cuda_kwargs)
+    cuda_kwargs = {'num_workers': 2,
+                   'pin_memory': True}
+    kwargs.update(cuda_kwargs)
 
-if params_loaded['dataset'] == 'mnist':
+# load datasets
+train_loader, test_loader = load_data(params_loaded['dataset'], DATA_DIR, kwargs)
 
+# setup model, optimizer, scheduler
+model = eval(params_loaded['model_name'])().to(device)
+optimizer = optim.Adadelta(model.parameters(), lr=params_loaded['learning_rate'])
+scheduler = StepLR(optimizer, step_size=1, gamma=params_loaded['gamma'])
 
-    transform=transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-        ])
+try:
+    saved_model = torch.load(MODEL_DIR)
+    model = model.load_state_dict(saved_model)
+    model.eval()
 
-    train_dataset = datasets.MNIST('./dataset', train=True, download=True,
-                                    transform=transform)
-    test_dataset = datasets.MNIST('./dataset', train=False,
-                                    transform=transform)
+except:
+    for epoch in range(1, params_loaded['epochs'] + 1):
+        mnist_train(args, model, device, train_loader, optimizer, epoch)
+        mnist_test(model, device, test_loader)
+        scheduler.step()
 
-    train_loader = torch.utils.data.DataLoader(train_dataset,**train_kwargs)
-    test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
-
-    # model = eval(params_loaded['model_name'])().to(device)
-    model = MnistBaseNet().to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=params_loaded['learning_rate'])
-
-    scheduler = StepLR(optimizer, step_size=1, gamma=params_loaded['gamma'])
-
-    if exists(f'model/mnist/mnist_cnn.pt'):
-
-        model = model.load_state_dict(torch.load(f'./model/mnist/mnist_cnn.pt'))
-        model.eval()
-    else:
-
-        for epoch in range(1, params_loaded['epochs'] + 1):
-            mnist_train(args, model, device, train_loader, optimizer, epoch)
-            mnist_test(model, device, test_loader)
-            scheduler.step()
-
-        torch.save(model.state_dict(), "model/mnist/mnist_cnn.pt")
-
-elif params_loaded['dataset'] == 'cifar10':
-
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-
-    trainset = datasets.CIFAR10(
-        root='./dataset', train=True, download=True, transform=transform_train)
-    testset = datasets.CIFAR10(
-        root='./dataset', train=False, download=True, transform=transform_test)
-
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=128, shuffle=True, num_workers=2)
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=100, shuffle=False, num_workers=2)
+    torch.save(model.state_dict(), MODEL_DIR)
 
 
+"""
     transform = transforms.Compose(
         [transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -223,3 +194,4 @@ for data, target in test_loader:
     output = model(data)
     print(output)
     time.sleep(3)
+"""
