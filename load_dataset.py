@@ -53,6 +53,23 @@ def load_data(data_name, data_dir='./dataset', kwargs={}):
                                         download=True,
                                         transform=transform_test)
 
+    elif data_name == 'svhn':
+        # transform
+        transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+
+        # load train/test
+        train_dataset = datasets.SVHN(root=data_dir,
+                                      split='train',
+                                      download=True,
+                                      transform=transform)
+        test_dataset = datasets.SVHN(root=data_dir,
+                                     split='test',
+                                     download=True,
+                                     transform=transform)
+
     # no matching dataset name
     else:
         print('error!')
@@ -72,7 +89,7 @@ def load_setup(model_params, data_name, lr):
         optimizer = optim.Adadelta(model_params, lr=lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
 
-    elif data_name == 'cifar10':
+    elif data_name in ['cifar10', 'svhn']:
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(model_params, lr=lr, momentum=0.9, weight_decay=5e-4)
         scheduler = CosineAnnealingLR(optimizer, T_max=200)
