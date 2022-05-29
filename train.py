@@ -66,7 +66,7 @@ criterion, optimizer, scheduler = load_setup(model.parameters(),
 try:
     # try to load pretrained model
     saved_state = torch.load(MODEL_DIR)
-    model = model.load_state_dict(saved_state['model'])
+    model.load_state_dict(saved_state['model'])
     print('[*] best_acc:', saved_state['acc'])
     print('[*] best_epoch:', saved_state['epoch'])
 
@@ -78,5 +78,5 @@ except:
         best_acc = test(model, test_loader, criterion, epoch, device, best_acc)
         scheduler.step()
 
-    # save model with best accuracy
+    # save model with the best accuracy
     torch.save(torch.load('./checkpoint/ckpt.pth'), MODEL_DIR)
