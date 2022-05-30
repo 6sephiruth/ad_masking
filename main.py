@@ -75,7 +75,7 @@ if params_loaded['dataset'] == 'mnist':
 
         model = model.load_state_dict(torch.load(f'./model/mnist/mnist_cnn.pt'))
         model.eval()
-    else:  
+    else:
 
         for epoch in range(1, params_loaded['epochs'] + 1):
             mnist_train(args, model, device, train_loader, optimizer, epoch)
@@ -112,7 +112,7 @@ elif params_loaded['dataset'] == 'cifar10':
     transform = transforms.Compose(
         [transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    
+
     train_dataset = datasets.CIFAR10(root='./dataset', train=True,download=True,
                                             transform=transform)
 
@@ -125,7 +125,7 @@ elif params_loaded['dataset'] == 'cifar10':
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     net = ResNet50()
-    
+
     net = net.to(device)
     if device == 'cuda':
         net = torch.nn.DataParallel(net)
@@ -205,8 +205,8 @@ elif params_loaded['dataset'] == 'cifar10':
             best_acc = acc
 
     if exists(f'model/cifar-10//cifar10_resnet50.pt'):
-        
-        print("파일 있다.")        
+
+        print("파일 있다.")
         #model = torch.load(f'model/cifar-10//cifar10_resnet50.pt')
 
     else:

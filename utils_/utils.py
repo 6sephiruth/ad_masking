@@ -2,10 +2,14 @@ import torch
 import torch.nn.functional as F
 import os, time, sys
 
+import matplotlib
+matplotlib.use('pdf')
+import matplotlib.pyplot as plt
+
 TOTAL_BAR_LENGTH = 65.
 last_time = time.time()
 begin_time = last_time
-_, term_width = os.popen('stty size', 'r').read().split()
+_, term_width = os.popen('stty size','r').read().split()
 term_width = int(term_width)
 
 def exists(pathname):
@@ -58,7 +62,6 @@ def progress_bar(current, total, msg=None):
         sys.stdout.write('\n')
     sys.stdout.flush()
 
-
 def format_time(seconds):
     days = int(seconds / 3600/24)
     seconds = seconds - days*3600*24
@@ -92,7 +95,7 @@ def format_time(seconds):
     return f
 
 
-# Training
+# training
 def train(model, train_loader, optimizer, criterion, epoch, device='cpu'):
     print('\nEpoch: %d' % epoch)
     model.train()
@@ -116,6 +119,7 @@ def train(model, train_loader, optimizer, criterion, epoch, device='cpu'):
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 
+# testing
 def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0):
     model.eval()
     test_loss = 0
@@ -149,3 +153,18 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0):
         best_acc = acc
 
     return best_acc
+
+
+# plot a single image
+def plot_img(im, filename='tmp.png'):
+    assert len(im) in [1,3]
+
+    if len(im) == 1:
+        im = im[0]
+    else:
+        im = im.permute(1,2,0)
+
+    plt.figure()
+    plt.imshow(im)
+    plt.colorbar()
+    plt.savefig(filename)
