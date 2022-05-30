@@ -1,7 +1,9 @@
 __pycache__
 dataset
 model
+experiments
 checkpoint
 
 # params setting for gihyuk
 params_.yaml
+*.png

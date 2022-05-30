@@ -1,5 +1,7 @@
 import argparse
 import torch.backends.cudnn as cudnn
+
+import numpy as np
 import yaml
 
 # custom packages
@@ -8,8 +10,9 @@ from models import *
 
 # parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('params', type=str,
-                    desc='YAML configuration file for experiment parameters')
+# parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('params', type=str)
 args = parser.parse_args()
 
 with open(f'./{args.params}', 'r') as f:
@@ -64,16 +67,11 @@ try:
     # try to load pretrained model
     saved_state = torch.load(MODEL_DIR)
     model.load_state_dict(saved_state['model'])
-    print('[*] best_acc:', saved_state['acc'])
-    print('[*] best_epoch:', saved_state['epoch'])
+    #print('[*] best_acc:', saved_state['acc'])
+    #print('[*] best_epoch:', saved_state['epoch'])
+    test_acc = test(model, test_loader, criterion, 0, device, save_result=False)
+    print('[*] best_acc:', test_acc)
 
 except:
-    # train model
-    best_acc = 0
-    for epoch in range(1, params_loaded['epochs'] + 1):
-        train(model, train_loader, optimizer, criterion, epoch, device)
-        best_acc = test(model, test_loader, criterion, epoch, device, best_acc)
-        scheduler.step()
-
-    # save model with the best accuracy
-    torch.save(torch.load('./checkpoint/ckpt.pth'), MODEL_DIR)
+    print('error!')
+    exit()

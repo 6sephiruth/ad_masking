@@ -8,8 +8,7 @@ from models import *
 
 # parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('params', type=str,
-                    desc='YAML configuration file for experiment parameters')
+parser.add_argument('--params', default='params_.yaml')
 args = parser.parse_args()
 
 with open(f'./{args.params}', 'r') as f:
@@ -60,20 +59,49 @@ criterion, optimizer, scheduler = load_setup(model.parameters(),
                                              params_loaded['dataset'],
                                              params_loaded['learning_rate'])
 
+# load pretrained model
 try:
-    # try to load pretrained model
     saved_state = torch.load(MODEL_DIR)
     model.load_state_dict(saved_state['model'])
     print('[*] best_acc:', saved_state['acc'])
     print('[*] best_epoch:', saved_state['epoch'])
-
+    model.eval()
 except:
-    # train model
-    best_acc = 0
-    for epoch in range(1, params_loaded['epochs'] + 1):
-        train(model, train_loader, optimizer, criterion, epoch, device)
-        best_acc = test(model, test_loader, criterion, epoch, device, best_acc)
-        scheduler.step()
+    print('error!')
+    exit()
 
-    # save model with the best accuracy
-    torch.save(torch.load('./checkpoint/ckpt.pth'), MODEL_DIR)
+### captum packages ###
+
+from captum.attr import (
+    LayerActivation,
+    LayerConductance,
+    InternalInfluence,
+    LayerGradientXActivation,
+    LayerGradCam,
+    LayerDeepLift,
+    LayerDeepLiftShap,
+    LayerGradientShap,
+    LayerIntegratedGradients,
+    LayerFeatureAblation,
+    LayerLRP
+)
+
+attr_method = "LayerActivation"
+
+# aggregate attribution for each layer
+avgs = {}
+for n,l in model.named_children():
+    res = []
+    attr = eval(attr_method)(model, l)
+    for (x,y) in test_loader:
+        if attr_method == 'LayerActivation':
+            res.append(attr.attribute(x.cuda()).detach().cpu())
+        else:
+            res.append(attr.attribute(x.cuda(), target=y.cuda()).detach().cpu())
+
+    res = torch.cat(res, 0)
+    avgs[n] = torch.mean(res, 0, True)
+    print(n, avgs[n].size(), avgs[n])
+    exit()
+
+print(avgs)

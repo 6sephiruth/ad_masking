@@ -1,24 +1,17 @@
 # ad_masking
-적대적 예시 방어 (XAI 활용 + Model activation 수정)
+Neuron 영향도 기반 masking을 사용한 적대적 예시 방어 기법 (XAI 활용 + Model activation 수정)
 
-사용법: python main.py --params params.yaml
-* mnist, cifar10 변경 -> params.yaml 수정
-
-현재, mnist, cifar-10 모델 학습
-
-ToDoList:
-  - pgd attack
-  - captum 사용
-  -
-
-### Prerequisites
-Run the following:
+### 요구 패키지 설치
+Our implementation runs on Python 3.8+. In order to install required packages, run the following:
 ```
 $ pip3 install -r requirements.txt
 ```
 
-### Training models
-Run the following:
+### 모델 학습
 ```
-$ python3 train.py --params params.yaml
+python train.py --params params.yaml
 ```
+params.yaml을 통해 MNIST, CIFAR-10, SVHN 모델 학습 가능.
+
+### TODOs
+TODO lists moved to [here](./TODOs.md)

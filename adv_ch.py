@@ -1,15 +1,16 @@
 import argparse
 import torch.backends.cudnn as cudnn
+import numpy as np
 import yaml
 
 # custom packages
 from utils_ import *
 from models import *
 
+
 # parse arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('params', type=str,
-                    desc='YAML configuration file for experiment parameters')
+parser.add_argument('--params', default='params_.yaml')
 args = parser.parse_args()
 
 with open(f'./{args.params}', 'r') as f:
@@ -60,20 +61,23 @@ criterion, optimizer, scheduler = load_setup(model.parameters(),
                                              params_loaded['dataset'],
                                              params_loaded['learning_rate'])
 
+# load pretrained model
 try:
-    # try to load pretrained model
     saved_state = torch.load(MODEL_DIR)
     model.load_state_dict(saved_state['model'])
     print('[*] best_acc:', saved_state['acc'])
     print('[*] best_epoch:', saved_state['epoch'])
-
+    model.eval()
 except:
-    # train model
-    best_acc = 0
-    for epoch in range(1, params_loaded['epochs'] + 1):
-        train(model, train_loader, optimizer, criterion, epoch, device)
-        best_acc = test(model, test_loader, criterion, epoch, device, best_acc)
-        scheduler.step()
+    print('error!')
+    exit()
 
-    # save model with the best accuracy
-    torch.save(torch.load('./checkpoint/ckpt.pth'), MODEL_DIR)
+### import adversarial packages ###
+from adv_util import *
+
+atk_method = 'PGD'
+
+sub = range(0, len(e.test), 20)
+adv_test = Subset(adv_ds, sub)
+
+adv_xs, adv_ys = attack(test_loader, model, atk_method, 0.03)
