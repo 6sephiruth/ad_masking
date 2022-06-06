@@ -1,8 +1,5 @@
 # adversarial attack modules
-from cleverhans.torch.attacks.fast_gradient_method import fast_gradient_method as FGSM
-from cleverhans.torch.attacks.projected_gradient_descent import projected_gradient_descent as PGD
-from cleverhans.torch.attacks.carlini_wagner_l2 import carlini_wagner_l2 as CW
-from cleverhans.torch.attacks.spsa import spsa as SPSA
+import foolbox as fb
 from torch.utils.data import DataLoader
 
 import numpy as np

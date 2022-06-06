@@ -12,13 +12,7 @@ begin_time = last_time
 _, term_width = os.popen('stty size','r').read().split()
 term_width = int(term_width)
 
-def exists(pathname):
-    return os.path.exists(pathname)
-
-def makedirs(dir_names):
-    for d in dir_names:
-        os.makedirs(d, exist_ok=True)
-
+# progress bar
 def progress_bar(current, total, msg=None):
     global last_time, begin_time
     if current == 0:
@@ -62,6 +56,7 @@ def progress_bar(current, total, msg=None):
         sys.stdout.write('\n')
     sys.stdout.flush()
 
+# time for progress bar
 def format_time(seconds):
     days = int(seconds / 3600/24)
     seconds = seconds - days*3600*24
@@ -120,7 +115,7 @@ def train(model, train_loader, optimizer, criterion, epoch, device='cpu'):
 
 
 # testing
-def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0):
+def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_model=True):
     model.eval()
     test_loss = 0
     correct = 0
@@ -141,7 +136,7 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0):
 
     # Save checkpoint.
     acc = 100.*correct/total
-    if acc > best_acc:
+    if acc > best_acc and save_model:
         print('Saving..')
         state = {
             'model': model.state_dict(),
@@ -154,6 +149,31 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0):
 
     return best_acc
 
+
+# inference
+# TODO: simplify
+def inference(model, xs, device='cpu'):
+    ys = []
+    model.eval()
+    with torch.no_grad():
+        for batch_idx, inputs in enumerate(xs):
+            inputs = inputs.to(device)
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+
+            ys.append(predicted.cpu())
+
+    ys = torch.cat(ys,0)
+
+    return ys
+
+
+def exists(pathname):
+    return os.path.exists(pathname)
+
+def makedirs(dir_names):
+    for d in dir_names:
+        os.makedirs(d, exist_ok=True)
 
 # plot a single image
 def plot_img(im, filename='tmp.png'):

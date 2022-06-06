@@ -1,0 +1,11 @@
+# experiment config
+seed      : 0
+gpu       : 0
+data_dir  : './data'
+
+# model config
+dataset       : 'cifar10'
+model_name    : 'ResNet50'
+bat_size      : 128
+n_epoch       : 200
+learning_rate : 0.1
