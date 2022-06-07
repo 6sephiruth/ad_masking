@@ -34,56 +34,56 @@ except:
     print('error!')
     exit()
 
+test_loader_ = test_loader
 
-# generate adversarial examples
-import foolbox as fb
+# set test dataset
+_, test_raw = load_dataset(p.dataset, p.data_dir, normalize=False)      # raw data (0,1)
+sub = range(0, len(test_raw), 1)
+test_raw = Subset(test_raw, sub)
+norm_loader = DataLoader(test_raw, shuffle=False, **p.kwargs)
+preproc = norm_param(p.dataset, get_axis=True)
 
-_, test_raw = load_raw(params_loaded['dataset'], DATA_DIR)      # raw data (0,1)
-sub = range(0, len(test_raw), 50)
-test_raw_sub = Subset(test_raw, sub)
-norm_loader = DataLoader(test_raw_sub, shuffle=False, **kwargs)
-
-preprocessing = load_preproc(params_loaded['dataset'])
-fmodel = fb.PyTorchModel(model, bounds=(0,1), preprocessing=preprocessing)
-
-def attack(data_loader, fmodel, atk_method='LinfPGD', epsilon=0.1):
-    # TODO: make variants
-    if atk_method == 'LinfPGD':
-        atk = fb.attacks.LinfPGD()
-
-    # output as list
-    advs, succ = [], []
-
-    for (x,y) in data_loader:
-        _, adv, success = atk(fmodel, x.cuda(), y.cuda(), epsilons=epsilon)
-        advs.extend(adv.cpu())
-        succ.extend(success.cpu())
-
-    robust_acc = 1 - np.mean(succ)
-    print(f"robust accuracy: {robust_acc}")
-
-    return advs
-
-adv_xs = attack(norm_loader, fmodel)
-adv_x = DataLoader(adv_xs, shuffle=False, **kwargs)
+adv_xs = attack(norm_loader, model, p.atk_method, p.atk_epsilon, preproc, device)
+adv_x = DataLoader(adv_xs, shuffle=False, **p.kwargs)
 adv_ys = inference(model, adv_x, device)
+norm_ys = test_raw.dataset.targets
+norm_ys = Subset(norm_ys, sub)
 
 # custom dataset
-adv_dataset = CustomDataset(adv_xs, adv_ys)
-adv_loader = DataLoader(adv_dataset, shuffle=False, **kwargs)
+adv_dataset = CustomDataset(adv_xs, norm_ys)
+adv_loader = DataLoader(adv_dataset, shuffle=False, **p.kwargs)
 
 # get average attributions
 print('calculating average attribution ... ')
-attr_norm = get_attr(norm_loader, model, "LayerActivation")
-attr_adv = get_attr(adv_loader, model, "LayerActivation")
+attr_norm = get_attr(norm_loader, model, p.attr_method)
+attr_adv = get_attr(adv_loader, model, p.attr_method)
 print('done\n')
 
+# masked model
+masked_model = eval(f"Masked{p.model_name}")().to(device)
+masked_model.load_state_dict(saved_state['model'])
 
-k=0.1
-exclude=[]
-masks = adv_masks(attr_norm, attr_adv, k=k, exclude=exclude)
+# different masking portions
+N = 10
+ks = range(N+1)
+for k in ks:
+    k = k/N
 
-print('forwarding on masked model ... ')
+    # apply mask to the model
+    masked_model.masks = adv_masks(attr_norm, attr_adv, k=k, exclude=[])
+
+    print('forwarding on masked model ... ')
+    norm_acc = test(masked_model, norm_loader, criterion, 0, device, save_model=False)
+    adv_acc = test(masked_model, adv_loader, criterion, 0, device, save_model=False)
+
+    # benchmarking
+    info = map(str, [p.dataset, p.model_name, p.atk_method, p.atk_epsilon, p.attr_method])
+    stats = map(lambda s: f'{s:.4f}', [k, norm_acc, adv_acc])
+
+    with open('bench.tsv', 'a') as f:
+        f.write('\t'.join([*info, *stats]) + '\n')
+
+"""
 total = 0
 corr_n, corr_a = 0,0
 corr_mask_n, corr_mask_a = 0,0
@@ -117,3 +117,4 @@ mask_acc_a = corr_mask_a / total
 # benchmarking
 stats = map(lambda s: f'{s:.4f}', [acc_n, mask_acc_n, acc_a, mask_acc_a])
 print(list(stats))
+"""

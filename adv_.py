@@ -40,7 +40,7 @@ _, test_raw = load_dataset(p.dataset, p.data_dir, normalize=False)      # raw da
 sub = range(0, len(test_raw), 50)
 test_raw_sub = Subset(test_raw, sub)
 test_loader = DataLoader(test_raw_sub, shuffle=False, **p.kwargs)
-preproc = norm_params(p.dataset, get_axis=True)
+preproc = norm_param(p.dataset, get_axis=True)
 
 adv_xs = attack(test_loader, model, p.atk_method, p.atk_epsilon, preproc, device)
 print(adv_xs)

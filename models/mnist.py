@@ -26,3 +26,37 @@ class MnistBaseNet(nn.Module):
         x = self.fc2(x)
         output = F.log_softmax(x, dim=1)
         return output
+
+
+class MaskedMnistBaseNet(MnistBaseNet):
+    def __init__(self, masks=None):
+        super().__init__()
+        self.masks = masks
+
+    def apply_mask(self, x, m):
+        device = x.get_device()
+        b = x.size(0)                           # batch size
+        d = tuple(1 for _ in range(x.dim()-1))
+        ext_m = m.repeat(b,*d).to(device)       # extended mask
+        return torch.where(ext_m, x, torch.zeros_like(x))
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.apply_mask(x, self.masks['conv1'])
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = self.apply_mask(x, self.masks['conv2'])
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = self.apply_mask(x, self.masks['dropout1'])
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = self.apply_mask(x, self.masks['fc1'])
+        x = F.relu(x)
+        x = self.dropout2(x)
+        x = self.apply_mask(x, self.masks['dropout2'])
+        x = self.fc2(x)
+        x = self.apply_mask(x, self.masks['fc2'])
+        output = F.log_softmax(x, dim=1)
+        return output

@@ -136,15 +136,16 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_
 
     # Save checkpoint.
     acc = 100.*correct/total
-    if acc > best_acc and save_model:
-        print('Saving..')
-        state = {
-            'model': model.state_dict(),
-            'acc': acc,
-            'epoch': epoch,
-        }
-        os.makedirs('checkpoint', exist_ok=True)
-        torch.save(state, './checkpoint/ckpt.pth')
+    if acc > best_acc:
+        if save_model:
+            print('Saving..')
+            state = {
+                'model': model.state_dict(),
+                'acc': acc,
+                'epoch': epoch,
+            }
+            os.makedirs('checkpoint', exist_ok=True)
+            torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
 
     return best_acc

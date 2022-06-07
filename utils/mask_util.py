@@ -93,21 +93,6 @@ def top_k(attr, k, exclude, mode='all_except'):
 
     return res
 
-def masked_forward(model, xs, masks):
-    cur, bat_size = xs.cuda(), xs.size(0)
-    for (n,l),m in zip(model.named_children(), masks.values()):
-        print(m.size())
-        print(bat_size)
-        print(n)
-        print(cur.size())
-        cur = l(cur)
-        print(cur.size())
-        dims = tuple(1 for _ in range(cur.dim()-1))
-        m_ = m.repeat(bat_size, *dims).cuda()
-        cur = torch.where(m_, cur, torch.zeros_like(cur).cuda())
-
-    return cur
-
 def update_mask(masks, new_masks):
     if masks is None:
         return new_masks

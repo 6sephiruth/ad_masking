@@ -1,0 +1,12 @@
+data	model	atk_method	atk_epsilon	attr_method	k	norm_acc	adv_acc
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.0000	98.9600	82.1300
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.1000	98.4900	81.2900
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.2000	88.9700	72.2400
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.3000	79.4500	65.9000
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.4000	70.6000	59.3600
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.5000	60.6300	51.4800
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.6000	49.5600	39.8500
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.7000	35.4600	28.7200
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.8000	17.3500	14.9700
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	0.9000	15.1000	12.9800
+mnist	MnistBaseNet	LinfPGD	0.1	LayerConductance	1.0000	9.8000	9.8000

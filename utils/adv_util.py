@@ -7,7 +7,7 @@ def atk_params(atk_method):
 
 
 def attack(data_loader, model, atk_method, atk_epsilon, preprocessing, device):
-
+    # TODO: for multiple epsilons?
     assert type(atk_epsilon) == float
 
     # define fb torch model
@@ -24,11 +24,11 @@ def attack(data_loader, model, atk_method, atk_epsilon, preprocessing, device):
         adv_xs.append(advs.cpu())
         atk_succ.extend(success.cpu())
 
-
-    print(atk_succ)
+    #print(atk_succ)
     robust_acc = 1 - np.mean(atk_succ)
 
     print(f"robust accuracy with attack method: {atk_method}")
     print(f"  norm ≤ {atk_epsilon:<6}: {robust_acc.item() * 100:4.1f} %")
+    #print(f"robust accuracy: {robust_acc}")
 
     return torch.cat(adv_xs, 0)
