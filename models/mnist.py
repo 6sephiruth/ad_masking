@@ -40,6 +40,7 @@ class MaskedMnistBaseNet(MnistBaseNet):
         ext_m = m.repeat(b,*d).to(device)       # extended mask
         return torch.where(ext_m, x, torch.zeros_like(x))
 
+    # TODO: automate this process?
     def forward(self, x):
         x = self.conv1(x)
         x = self.apply_mask(x, self.masks['conv1'])

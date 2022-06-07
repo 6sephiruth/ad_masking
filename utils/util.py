@@ -115,7 +115,7 @@ def train(model, train_loader, optimizer, criterion, epoch, device='cpu'):
 
 
 # testing
-def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_model=True):
+def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_model=True, transform=None):
     model.eval()
     test_loss = 0
     correct = 0
@@ -123,6 +123,8 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
             inputs, targets = inputs.to(device), targets.to(device)
+            if transform:
+                inputs = transform(inputs)
             outputs = model(inputs)
             loss = criterion(outputs, targets)
 

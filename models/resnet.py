@@ -122,3 +122,40 @@ def ResNet101():
 
 def ResNet152():
     return ResNet(Bottleneck, [3, 8, 36, 3])
+
+
+def MaskedResNet50():
+    return MaskedResNet(Bottleneck, [3, 4, 6, 3])
+
+
+class MaskedResNet(ResNet):
+    def __init__(self, block, num_blocks, num_classes=10, masks=None):
+        super().__init__(block, num_blocks, num_classes)
+        self.masks = masks
+
+    def apply_mask(self, x, m):
+        device = x.get_device()
+        b = x.size(0)                           # batch size
+        d = tuple(1 for _ in range(x.dim()-1))
+        ext_m = m.repeat(b,*d).to(device)       # extended mask
+        return torch.where(ext_m, x, torch.zeros_like(x))
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.apply_mask(x, self.masks['conv1'])
+        x = self.bn1(x)
+        x = self.apply_mask(x, self.masks['bn1'])
+        x = F.relu(x)
+        x = self.layer1(x)
+        x = self.apply_mask(x, self.masks['layer1'])
+        x = self.layer2(x)
+        x = self.apply_mask(x, self.masks['layer2'])
+        x = self.layer3(x)
+        x = self.apply_mask(x, self.masks['layer3'])
+        x = self.layer4(x)
+        x = self.apply_mask(x, self.masks['layer4'])
+        x = F.avg_pool2d(x, 4)
+        x = x.view(x.size(0), -1)
+        x = self.linear(x)
+        out = self.apply_mask(x, self.masks['linear'])
+        return out

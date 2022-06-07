@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import Dataset, DataLoader, Subset, TensorDataset
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
 import torch.backends.cudnn as cudnn
@@ -56,6 +56,7 @@ def load_dataset(data_name, data_dir='./dataset', normalize=True):
 
     # base transform
     tf_base = transforms.Compose([
+            transforms.Resize((32,32)),
             transforms.ToTensor(),
             transforms.Normalize(**preproc)
         ])
@@ -140,8 +141,8 @@ class CustomDataset(Dataset):
     def __init__(self, xs, ys):
         super().__init__()
         assert len(xs) == len(ys)
-        self.x_data = xs
-        self.y_data = ys
+        self.x_data = torch.Tensor(xs)
+        self.y_data = torch.Tensor(ys)
 
     def __len__(self):
         return len(self.x_data)

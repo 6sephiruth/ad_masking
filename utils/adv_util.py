@@ -6,7 +6,7 @@ def atk_params(atk_method):
     pass
 
 
-def attack(data_loader, model, atk_method, atk_epsilon, preprocessing, device):
+def attack(model, data_loader, atk_method, atk_epsilon, preprocessing, device):
     # TODO: for multiple epsilons?
     assert type(atk_epsilon) == float
 
@@ -24,7 +24,6 @@ def attack(data_loader, model, atk_method, atk_epsilon, preprocessing, device):
         adv_xs.append(advs.cpu())
         atk_succ.extend(success.cpu())
 
-    #print(atk_succ)
     robust_acc = 1 - np.mean(atk_succ)
 
     print(f"robust accuracy with attack method: {atk_method}")

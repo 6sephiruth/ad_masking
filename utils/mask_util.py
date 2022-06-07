@@ -20,7 +20,8 @@ from torch.nn.utils import prune
 import numpy as np
 import torch
 
-def get_attr(data_loader, model, attr_method):
+# TODO: filter and average only mislabeled examples
+def get_attr(model, data_loader, attr_method, transform=None):
     avgs = {}
 
     # aggregate attribution for each layer
@@ -28,6 +29,9 @@ def get_attr(data_loader, model, attr_method):
         res = []
         attr = eval(attr_method)(model, l)
         for (x,y) in data_loader:
+            # apply transform
+            x = transform(x) if transform else x
+
             if attr_method == 'LayerActivation':
                 res.append(attr.attribute(x.cuda()).detach().cpu())
             else:
@@ -54,14 +58,14 @@ def adv_masks(attr_norm, attr_adv, k, exclude=[], mode='diff'):
 
     elif mode == 'diff':
         for n,atr_n in attr_norm.items():
-            if n in exclude:
+            if n in exclude or k == 0:
                 masks[n] = torch.ones_like(atr_n, dtype=bool)
             else:
                 atr_a = attr_adv[n]
-                atr = atr_a - atr_n
+                atr = atr_n - atr_a
                 #atr = minmax(atr_a) - minmax(atr_n)
-                th0 = torch.quantile(atr, 1-k)
-                masks[n] = atr <= th0
+                th0 = torch.quantile(atr, k)
+                masks[n] = atr >= th0
                 #masks[n] = torch.logical_or(atr <= 0, atr <= th0)
 
     return masks
