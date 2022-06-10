@@ -8,10 +8,18 @@ $ pip3 install -r requirements.txt
 ```
 
 ### 모델 학습
+Training LeNet for MNIST
 ```
-python train.py --params params.yaml
+python3 train.py presets/mnist.yaml
 ```
-params.yaml을 통해 MNIST, CIFAR-10, SVHN 모델 학습 가능.
+Training ResNet50 for CIFAR10
+```
+python3 train.py presets/cifar10.yaml
+```
+Training ResNet50 for SVHN
+```
+python3 train.py presets/svhn.yaml
+```
 
 ### TODOs
 TODO lists moved to [here](./TODOs.md)

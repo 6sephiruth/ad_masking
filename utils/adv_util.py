@@ -28,6 +28,5 @@ def attack(model, data_loader, atk_method, atk_epsilon, preprocessing, device):
 
     print(f"robust accuracy with attack method: {atk_method}")
     print(f"  norm ≤ {atk_epsilon:<6}: {robust_acc.item() * 100:4.1f} %")
-    #print(f"robust accuracy: {robust_acc}")
 
-    return torch.cat(adv_xs, 0)
+    return torch.cat(adv_xs, 0), np.where(atk_succ)[0]

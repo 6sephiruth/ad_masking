@@ -1,11 +1,11 @@
 # experiment config
 seed      : 0
 gpu       : 0
-data_dir  : './data'
+data_dir  : './dataset'
 
 # model config
-dataset       : 'mnist'
-model_name    : 'MnistBaseNet'
+dataset       : 'MNIST'
+model_name    : 'LeNet'
 bat_size      : 128
 n_epoch       : 10
 learning_rate : 1.0

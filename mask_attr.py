@@ -42,20 +42,25 @@ _, norm_raw = load_dataset(p.dataset, p.data_dir, normalize=False)
 norm_ds = Subset(norm_raw, sub)
 norm_ys = Subset(norm_ds.dataset.targets, sub)
 norm_loader = DataLoader(norm_ds, shuffle=False, **p.kwargs)
-target_loader = DataLoader(norm_ys, shuffle=False, **p.kwargs)
 
 # preprocessing for foolbox
 preproc = norm_param(p.dataset, get_axis=True)
 
 # adversarial dataset
-adv_xs = attack(model, norm_loader, p.atk_method, p.atk_epsilon, preproc, device)
-adv_ds = TensorDataset(adv_xs, torch.LongTensor(norm_ys))
-adv_loader = DataLoader(adv_ds, shuffle=False, **p.kwargs)
+adv_xs, adv_idx = attack(model, norm_loader, p.atk_method, p.atk_epsilon, preproc, device)
+adv_xs = Subset(adv_xs, adv_idx)
+adv_xs_loader = DataLoader(adv_xs, shuffle=False, **p.kwargs)
+norm_ys = Subset(norm_ys, adv_idx)
+norm_ys_loader = DataLoader(norm_ys, shuffle=False, **p.kwargs)
 
-for i,x in enumerate(adv_xs):
-    plot_img(x, f'a{i}.png')
-    if i > 5:
-        exit()
+# loaders
+adv_loader = zip(adv_xs_loader, norm_ys_loader)
+
+norm_ds = Subset(norm_ds, adv_idx)
+norm_loader = DataLoader(norm_ds, shuffle=False, **p.kwargs)
+
+# hack for now
+#adv_loader = DataLoader(adv_ds, shuffle=False, **p.kwargs)
 
 # transform
 tf_norm = transforms.Normalize(**norm_param(p.dataset))
@@ -66,8 +71,8 @@ test_fn = lambda m, d: \
 
 # get average attributions
 print('calculating average attribution ... ')
-attr_norm = get_attr(model, norm_loader, p.attr_method, transform=tf_norm)
-attr_adv = get_attr(model, adv_loader, p.attr_method, transform=tf_norm)
+#attr_norm = get_attr(model, norm_loader, p.attr_method, transform=tf_norm)
+attr_adv = get_attr(model, adv_loader, p.attr_method, transform=tf_norm, get_y=True)
 print('done\n')
 
 # masked model
@@ -76,13 +81,17 @@ masked_model.load_state_dict(saved_state['model'])
 
 # different masking portions
 N = 10
-exclude = ['linear']
+#exclude = ['bn1','layer1','layer2','layer3','layer4','linear']
+exclude = ['conv1','bn1','linear']
 ks = range(N+1)
 for k in ks:
     k = k/N
+    if k==0:
+        continue
 
     # apply mask to the model
-    masked_model.masks = adv_masks(attr_norm, attr_adv, k=k, exclude=exclude, mode='diff')
+    #masked_model.masks = adv_masks(attr_norm, attr_adv, k=k, exclude=exclude, mode='diff')
+    masked_model.masks = get_mask(attr_norm, attr_adv, k=k, exclude=exclude)
 
     print('forwarding on masked model ... ')
     norm_acc = test_fn(masked_model, norm_loader)

@@ -14,15 +14,15 @@ def norm_param(data_name, get_axis=False):
     :param data_name: 데이터셋 이름.
     :param get_axis: 축 정보값 포함 여부를 결정하는 인자.
     """
-    if data_name == 'mnist':
+    if data_name == 'MNIST':
         mean = (0.1307,)
         std = (0.3081,)
         axis = -1
-    elif data_name == 'cifar10':
+    elif data_name == 'CIFAR10':
         mean = (0.4914, 0.4822, 0.4465)
         std = (0.2023, 0.1994, 0.2010)
         axis = -3
-    elif data_name == 'svhn':
+    elif data_name == 'SVHN':
         mean = (0.5, 0.5, 0.5)
         std = (0.5, 0.5, 0.5)
         axis = -3
@@ -49,7 +49,7 @@ def load_dataset(data_name, data_dir='./dataset', normalize=True):
     else:
         m = (0.0,)
         s = (1.0,)
-        if data_name in ['cifar10', 'svhn']:
+        if data_name in ['CIFAR10', 'SVHN']:
             m = m * 3
             s = s * 3
         preproc = dict(mean=m, std=s)
@@ -61,7 +61,7 @@ def load_dataset(data_name, data_dir='./dataset', normalize=True):
             transforms.Normalize(**preproc)
         ])
 
-    if data_name == 'mnist':
+    if data_name == 'MNIST':
         # load train/test
         train_ds = datasets.MNIST(root=data_dir,
                                   train=True,
@@ -72,7 +72,7 @@ def load_dataset(data_name, data_dir='./dataset', normalize=True):
                                  download=True,
                                  transform=tf_base)
 
-    elif data_name == 'cifar10':
+    elif data_name == 'CIFAR10':
         # transform for cifar10
         tf_cifar10 = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
@@ -91,7 +91,7 @@ def load_dataset(data_name, data_dir='./dataset', normalize=True):
                                    download=True,
                                    transform=tf_base)
 
-    elif data_name == 'svhn':
+    elif data_name == 'SVHN':
         # load train/test
         train_ds = datasets.SVHN(root=data_dir,
                                  split='train',
@@ -119,12 +119,12 @@ def load_setup(model_params, data_name, lr):
     :param data_name: 데이터셋 이름.
     :param lr: 학습률 (learning rate).
     """
-    if data_name == 'mnist':
+    if data_name == 'MNIST':
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adadelta(model_params, lr=lr)
         scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
 
-    elif data_name in ['cifar10', 'svhn']:
+    elif data_name in ['CIFAR10', 'SVHN']:
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(model_params, lr=lr, momentum=0.9, weight_decay=5e-4)
         scheduler = CosineAnnealingLR(optimizer, T_max=200)
@@ -142,7 +142,7 @@ class CustomDataset(Dataset):
         super().__init__()
         assert len(xs) == len(ys)
         self.x_data = torch.Tensor(xs)
-        self.y_data = torch.Tensor(ys)
+        self.y_data = torch.LongTensor(ys)
 
     def __len__(self):
         return len(self.x_data)
