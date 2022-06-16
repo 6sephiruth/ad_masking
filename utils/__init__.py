@@ -49,7 +49,7 @@ def get_params():
     # set train/test keyword arguments
     ret.kwargs = {'batch_size': ret.bat_size}
     if use_cuda:
-        cuda_kwargs = {'num_workers': 2}
+        cuda_kwargs = {'num_workers': 4}
         ret.kwargs.update(cuda_kwargs)
 
     return ret

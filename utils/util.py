@@ -119,6 +119,7 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_
     model.eval()
     test_loss = 0
     correct = 0
+    top5correct = 0
     total = 0
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
@@ -132,9 +133,18 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
+            _, top5 = outputs.topk(5)
+            top5 = top5.t()
+            top5corr = top5.eq(targets.view(1,-1).expand_as(top5))
+            top5correct += top5corr[:5].reshape(-1).float().sum().item()
 
-            progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            progress_bar(batch_idx, len(test_loader),
+                         'Loss: %.3f | Acc: %.3f%% (%d/%d) | Top5: %.3f%% (%d/%d)'
+                         % (test_loss/(batch_idx+1),
+                            100.*correct/total, correct, total,
+                            100.*top5correct/total, top5correct, total))
+
+            res_loss = test_loss/(batch_idx+1)
 
     # Save checkpoint.
     acc = 100.*correct/total
@@ -150,6 +160,9 @@ def test(model, test_loader, criterion, epoch, device='cpu', best_acc=0.0, save_
             torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
 
+    top5acc = 100.*top5correct/total
+
+    #return best_acc, res_loss, top5acc
     return best_acc
 
 

@@ -20,34 +20,51 @@ from torch.nn.utils import prune
 import numpy as np
 import torch
 
-# TODO: filter and average only mislabeled examples
-def get_attr(model, data_loader, attr_method, transform=None, get_y=False):
+def get_attr(model, data_loader, attr_method, transform=None, target_loader=None, get_y=False, device='cpu'):
     attributions = {}
 
     # aggregate attribution for each layer
     for n,l in model.named_children():
         res = []
-        attr = eval(attr_method)(model, l)
-        for (x,y) in data_loader:
-            # apply transform
-            x = transform(x) if transform else x
+        attr = eval(attr_method)(model, l, multiply_by_inputs=False)
+        #attr = eval(attr_method)(model, l)
 
+        # setup data loader
+        if target_loader:
+            loader = zip(data_loader, target_loader)
+        else:
+            loader = data_loader
+
+        # load data
+        for (x,y) in loader:
+            x = transform(x) if transform else x        # apply transform
+            x, y = x.to(device), y.to(device)
+
+            if get_y:
+                with torch.no_grad():
+                    _,y = model(x).max(1)
+
+            # TODO: organize this
             if attr_method == 'LayerActivation':
-                res.append(attr.attribute(x.cuda()).detach().cpu())
-            else:
-                if get_y:
-                    y = model(x.cuda())
-                    _, y = y.max(1)
-                res.append(attr.attribute(x.cuda(), target=y.cuda()).detach().cpu())
+                a = attr.attribute(x)
 
-        print(n, res)
+            elif attr_method in ['LayerConductance',
+                                 'InternalInfluence',
+                                 'LayerIntegratedGradients']:
+                a = attr.attribute(x, target=y, n_steps=20)
+
+            # TODO: baselines
+            else:
+                a = attr.attribute(x, target=y)
+
+            # append result
+            res.append(a.detach().cpu())
 
         res = torch.cat(res, 0)
         attributions[n] = res
-        #print(n, res)
-        #print(res.size())
 
     return attributions
+
 
 def get_mask(norm_attr, adv_attr, k, exclude=[]):
     masks = {}
@@ -61,14 +78,54 @@ def get_mask(norm_attr, adv_attr, k, exclude=[]):
         else:
             atr_diff = (atr_a > atr_n).type(torch.float)
             atr_diff = torch.mean(atr_diff, 0)
-            #print(max(atr_diff), min(atr_diff))
-            #print(diff_mean.size())
-            #atr_a = attr_adv[n]
-            #atr = atr_n - atr_a
-            th0 = torch.quantile(atr_diff, k)
-            print(th0)
-            masks[n] = atr_diff >= th0
-            print(masks[n])
+
+            th0 = torch.quantile(atr_diff, 1-k)
+            masks[n] = atr_diff <= th0
+
+    return masks
+
+
+def get_mask_rand(norm_attr, adv_attr, k, exclude=[]):
+    masks = {}
+    for n in norm_attr.keys():
+        atr_n = norm_attr[n]
+        if n in exclude or k == 0:
+            masks[n] = torch.ones(atr_n.size()[1:], dtype=bool)
+        else:
+            masks[n] = torch.rand(atr_n.size()[1:]) > k
+
+    return masks
+
+
+# Gyumin's method
+def get_mask_top(norm_attr, adv_attr, k, exclude=[]):
+    masks = {}
+    for n in norm_attr.keys():
+        # get attributions
+        atr_n = norm_attr[n]
+        atr_a = adv_attr[n]
+
+        if n in exclude or k == 0:
+            masks[n] = torch.ones(atr_n.size()[1:], dtype=bool)
+        else:
+            # threshold on zero
+            atr_n = (atr_n > 0).type(torch.float)
+            atr_a = (atr_a > 0).type(torch.float)
+
+            # count frequencies
+            cnt_n = torch.mean(atr_n, 0)
+            cnt_a = torch.mean(atr_a, 0)
+
+            # threshold by quantile
+            top_n = torch.quantile(cnt_n, 1-k, interpolation='nearest')
+            top_a = torch.quantile(cnt_a, 1-k, interpolation='nearest')
+
+            # top k neurons in each category
+            neu_n = cnt_n > top_n
+            neu_a = cnt_a > top_a
+
+            # only mask
+            masks[n] = torch.logical_or(neu_n, ~neu_a)
 
     return masks
 
