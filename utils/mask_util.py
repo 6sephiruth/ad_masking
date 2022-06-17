@@ -14,7 +14,7 @@ from captum.attr import (
 )
 
 from functools import reduce
-from itertools import pairwise
+from itertools import pairwise, combinations
 from torch.utils.data import DataLoader
 from torch.nn.utils import prune
 import numpy as np
@@ -26,8 +26,8 @@ def get_attr(model, data_loader, attr_method, transform=None, target_loader=None
     # aggregate attribution for each layer
     for n,l in model.named_children():
         res = []
-        attr = eval(attr_method)(model, l, multiply_by_inputs=False)
-        #attr = eval(attr_method)(model, l)
+        attr = eval(attr_method)(model, l)
+        #attr = eval(attr_method)(model, l, multiply_by_inputs=False)
 
         # setup data loader
         if target_loader:
@@ -44,7 +44,6 @@ def get_attr(model, data_loader, attr_method, transform=None, target_loader=None
                 with torch.no_grad():
                     _,y = model(x).max(1)
 
-            # TODO: organize this
             if attr_method == 'LayerActivation':
                 a = attr.attribute(x)
 
@@ -53,7 +52,11 @@ def get_attr(model, data_loader, attr_method, transform=None, target_loader=None
                                  'LayerIntegratedGradients']:
                 a = attr.attribute(x, target=y, n_steps=20)
 
-            # TODO: baselines
+            elif attr_method in ['LayerDeepLiftShap',
+                                 'LayerGradientShap']:
+                b = torch.zeros_like(x)
+                a = attr.attribute(x, target=y, baselines=b)
+
             else:
                 a = attr.attribute(x, target=y)
 

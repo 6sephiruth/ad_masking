@@ -93,53 +93,64 @@ attr_adv = get_attr(model=model,
                     device=device)
 print('done\n')
 
-# masked model
+# define masked model
 masked_model = eval(f"Masked{p.model_name}")().to(device)
 masked_model.load_state_dict(saved_state['model'])
 
-# TODO: change from whitelisting to blacklisting
+# all possible combinations of masking
+all_layers = [n for n,_ in model.named_children()]
 if p.model_name == 'ResNet50':
-    exclude = ['conv1','bn1','layer1','layer2','linear']
+    c_name = 'layer'
 elif p.model_name == 'LeNet':
-    exclude = ['flatten','fc1','fc2']
+    c_name = 'conv'
+mask_layers = [l for l in all_layers if c_name in l]    # extract layers to appply mask
 
-# different masking portions
-best_over, best_adv = 0, 0
-k_over, k_adv = 0, 0
-N = 100
-print(f"### excluding {exclude} ###")
-ks = range(N+1)
-for k in ks:
-    k = k/N
+for i in range(1, len(mask_layers)+1):
+    for mode, m in enumerate(combinations(mask_layers, i)):
+        exclude = [l for l in all_layers if l not in m]
 
-    # apply mask to the model
-    masked_model.masks = get_mask(attr_norm, attr_adv, k=k, exclude=exclude)
+        # different masking portions
+        best_over, best_adv = 0, 0
+        k_over, k_adv = 0, 0
+        N = 100
+        print(f"### excluding {exclude} ###")
+        ks = range(N+1)
+        for k in ks:
+            k = k/N
 
-    print('forwarding on masked model ... ')
-    norm_acc = test_fn(masked_model, norm_loader)
-    adv_loader = DataLoader(adv_ims, shuffle=False, **p.kwargs)
-    target_loader = DataLoader(norm_tar, shuffle=False, **p.kwargs)
-    adv_acc = test_fn(masked_model, list(zip(adv_loader, target_loader)))
+            # apply mask to the model
+            masked_model.masks = get_mask(attr_norm, attr_adv, k=k, exclude=exclude)
 
-    # record initial stats
-    if k == 0:
-        stat_init = (norm_acc, adv_acc)
+            print('forwarding on masked model ... ')
+            norm_acc = test_fn(masked_model, norm_loader)
+            adv_loader = DataLoader(adv_ims, shuffle=False, **p.kwargs)
+            target_loader = DataLoader(norm_tar, shuffle=False, **p.kwargs)
+            adv_acc = test_fn(masked_model, list(zip(adv_loader, target_loader)))
 
-    # record best overall
-    if (norm_acc + adv_acc)/2 > best_over:
-        best_over = (norm_acc + adv_acc)/2
-        stat_over = (k, norm_acc, adv_acc)
+            # record initial stats
+            if k == 0:
+                stat_init = (norm_acc, adv_acc)
 
-    # record best adversarial
-    if adv_acc > best_adv:
-        best_adv = adv_acc
-        stat_adv = (k, norm_acc, adv_acc)
+            # record best overall
+            if (norm_acc + adv_acc)/2 > best_over:
+                best_over = (norm_acc + adv_acc)/2
+                stat_over = (k, norm_acc, adv_acc)
 
-# benchmarking
-info = map(str, [p.dataset, p.model_name,
-                 p.atk_method, p.atk_epsilon,
-                 p.attr_method, p.seed])
-stats = map(lambda s: f'{s:.4f}', [*stat_init, *stat_over, *stat_adv])
+            # record best adversarial
+            if adv_acc > best_adv:
+                best_adv = adv_acc
+                stat_adv = (k, norm_acc, adv_acc)
 
-with open('bench/bench_best.tsv', 'a') as f:
-        f.write('\t'.join([*info, *stats]) + '\n')
+            # early stopping
+            if k - stat_over[0] > 0.1 and k - stat_adv[0] > 0.1:
+                break
+
+        # benchmarking
+        info = map(str, [mode, f'{i/len(mask_layers):.4f}',
+                         p.dataset, p.model_name,
+                         p.atk_method, p.atk_epsilon,
+                         p.attr_method, p.seed])
+        stats = map(lambda s: f'{s:.4f}', [*stat_init, *stat_over, *stat_adv])
+
+        with open('bench/bench_layer.tsv', 'a') as f:
+                f.write('\t'.join([*info, *stats]) + '\n')
